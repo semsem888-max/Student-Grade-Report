@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>استعلام نتائج الطلاب - تفاصيل المواد</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen p-4">
+    <div class="bg-white p-6 sm:p-8 rounded-xl shadow-lg w-full max-w-2xl">
+        <h1 class="text-2xl font-bold text-center text-gray-800 mb-6">بوابة نتائج الطلاب</h1>
+        
+        <div id="step1" class="space-y-4">
+            <div>
+                <label class="block text-sm font-medium text-gray-700 mb-1">رقم الجلوس</label>
+                <input type="text" id="seatInput" placeholder="أدخل رقم الجلوس هنا" class="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none">
+            </div>
+            <button onclick="searchStudent()" class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition font-semibold">عرض النتيجة والتفاصيل</button>
+            <p id="errorMsg" class="text-red-500 text-sm text-center hidden"></p>
+        </div>
+
+        <div id="step2" class="space-y-6 hidden">
+            <div class="bg-blue-50 border border-blue-200 p-4 rounded-lg space-y-2">
+                <div class="flex justify-between border-b border-blue-200 pb-2">
+                    <span class="text-sm text-gray-600">اسم الطالب:</span>
+                    <span id="studentName" class="font-bold text-blue-900"></span>
+                </div>
+                <div class="flex justify-between pt-1">
+                    <span class="text-sm text-gray-600">المستوى:</span>
+                    <span id="studentLevel" class="font-bold text-blue-800"></span>
+                </div>
+            </div>
+            
+            <div>
+                <h2 class="text-md font-bold text-gray-700 mb-3 border-r-4 border-blue-600 pr-2">تفاصيل المواد وحالة الدراسة:</h2>
+                <div id="gradesList" class="space-y-3 max-h-96 overflow-y-auto pl-1">
+                </div>
+            </div>
+
+            <button onclick="resetSearch()" class="w-full bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition font-medium">بحث عن رقم آخر</button>
+        </div>
+    </div>
+
+    <script>
+        async function searchStudent() {
+            const seat = document.getElementById('seatInput').value.trim();
+            const errorMsg = document.getElementById('errorMsg');
+            
+            if (!seat) {
+                errorMsg.innerText = "الرجاء إدخال رقم الجلوس";
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/student/search?seat_number=${seat}`);
+                if (!response.ok) throw new Error("رقم الجلوس غير صحيح");
+                
+                const data = await response.json();
+                
+                document.getElementById('studentName').innerText = data.name;
+                document.getElementById('studentLevel').innerText = data.level;
+                
+                const gradesContainer = document.getElementById('gradesList');
+                gradesContainer.innerHTML = '';
+
+                data.results.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = "flex justify-between items-center bg-gray-50 p-3 rounded-lg border border-gray-200 hover:bg-blue-50/50 transition";
+                    
+                    let statusBadge = item.status === "تمت" 
+                        ? `<span class="bg-green-100 text-green-800 text-xs px-2.5 py-1 rounded-full font-semibold">تمت</span>`
+                        : `<span class="bg-red-100 text-red-800 text-xs px-2.5 py-1 rounded-full font-semibold">لم تتم</span>`;
+
+                    card.innerHTML = `
+                        <div class="flex flex-col">
+                            <span class="font-bold text-gray-800">${item.subject}</span>
+                            <span class="text-xs text-gray-500 mt-1">حالة الدراسة: ${statusBadge}</span>
+                        </div>
+                        <div class="text-left">
+                            <span class="font-extrabold text-blue-700 bg-blue-100 px-3 py-1.5 rounded-md text-sm">${item.grade}</span>
+                        </div>
+                    `;
+                    gradesContainer.appendChild(card);
+                });
+
+                document.getElementById('step1').classList.add('hidden');
+                document.getElementById('step2').classList.remove('hidden');
+                errorMsg.classList.add('hidden');
+            } catch (err) {
+                errorMsg.innerText = "رقم الجلوس غير موجود أو حدث خطأ في النظام";
+                errorMsg.classList.remove('hidden');
+            }
+        }
+
+        function resetSearch() {
+            document.getElementById('seatInput').value = "";
+            document.getElementById('step2').classList.add('hidden');
+            document.getElementById('step1').classList.remove('hidden');
+        }
+    </script>
+</body>
+</html>
